@@ -44,5 +44,3 @@ jobs:
         with:
           name: test-logs
           path: logs/
-
-
