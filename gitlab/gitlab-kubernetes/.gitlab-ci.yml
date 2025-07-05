@@ -1,0 +1,10 @@
+deploy-to-k8s:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  script:
+    - mkdir -p ~/.kube
+    - echo "$KUBECONFIG_CONTENT" > ~/.kube/config
+    - kubectl config set-context --current --namespace=default
+    - kubectl apply -f k8s/deployment.yaml
+  only:
+    - main
