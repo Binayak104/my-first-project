@@ -1,0 +1,48 @@
+# AWS Configuration
+aws_region   = "us-east-1"
+environment  = "prod"  # dev, staging, prod
+project_name = "ecommerce"
+
+# Networking
+vpc_cidr           = "10.0.0.0/16"
+availability_zones = ["us-east-1a", "us-east-1b", "us-east-1c"]
+
+# Web Tier Configuration
+web_tier_instance_type    = "t3.medium"
+web_tier_min_size         = 2
+web_tier_max_size         = 10
+web_tier_desired_capacity = 3
+
+# App Tier Configuration
+app_tier_instance_type    = "t3.large"
+app_tier_min_size         = 2
+app_tier_max_size         = 10
+app_tier_desired_capacity = 3
+
+# Database Configuration
+db_instance_class           = "db.r6g.xlarge"
+db_name                     = "ecommercedb"
+db_username                 = "admin"
+db_allocated_storage        = 100
+db_max_allocated_storage    = 500
+db_backup_retention_period  = 7
+
+# ElastiCache Configuration
+elasticache_node_type        = "cache.r6g.large"
+elasticache_num_cache_nodes  = 2
+
+# Monitoring
+enable_enhanced_monitoring = true
+alarm_email                = "devops@example.com"
+
+# Security
+enable_waf           = true
+allowed_cidr_blocks  = ["0.0.0.0/0"]  # Restrict this in production
+
+# SSL/TLS Configuration
+# Uncomment and add your certificate ARN for HTTPS
+# ssl_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# Domain Configuration
+# Uncomment and add your domain for CloudFront
+# domain_name = "www.example.com"
