@@ -1,0 +1,186 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFormation template to provision EC2 instance with web server'
+
+Parameters:
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t2.medium
+    ConstraintDescription: Must be a valid EC2 instance type
+  
+  KeyName:
+    Description: Name of an existing EC2 KeyPair
+    Type: String
+    Default: key-23-10-2025
+  
+  LatestAmiId:
+    Description: Latest Amazon Linux 2 AMI ID
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+
+Resources:
+  # Security Group for EC2 instance
+  WebServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable HTTP and SSH access
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: Allow HTTP from anywhere
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: Allow SSH from anywhere
+      Tags:
+        - Key: Name
+          Value: WebServerSecurityGroup
+
+  # EC2 Instance
+  WebServerInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      ImageId: !Ref LatestAmiId
+      SecurityGroups:
+        - !Ref WebServerSecurityGroup
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          # Update system packages
+          yum update -y
+          
+          # Install Apache web server
+          yum install -y httpd
+          
+          # Create a simple HTML file
+          cat > /var/www/html/index.html <<'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Welcome to My EC2 Instance</title>
+              <style>
+                  * {
+                      margin: 0;
+                      padding: 0;
+                      box-sizing: border-box;
+                  }
+                  body {
+                      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                      min-height: 100vh;
+                      display: flex;
+                      justify-content: center;
+                      align-items: center;
+                      padding: 20px;
+                  }
+                  .container {
+                      background: white;
+                      border-radius: 20px;
+                      padding: 50px;
+                      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                      max-width: 600px;
+                      text-align: center;
+                      animation: fadeIn 1s ease-in;
+                  }
+                  @keyframes fadeIn {
+                      from {
+                          opacity: 0;
+                          transform: translateY(-20px);
+                      }
+                      to {
+                          opacity: 1;
+                          transform: translateY(0);
+                      }
+                  }
+                  h1 {
+                      color: #667eea;
+                      font-size: 2.5em;
+                      margin-bottom: 20px;
+                  }
+                  .emoji {
+                      font-size: 4em;
+                      margin-bottom: 20px;
+                  }
+                  p {
+                      color: #555;
+                      font-size: 1.2em;
+                      line-height: 1.6;
+                      margin-bottom: 15px;
+                  }
+                  .info {
+                      background: #f8f9fa;
+                      padding: 20px;
+                      border-radius: 10px;
+                      margin-top: 30px;
+                  }
+                  .info p {
+                      font-size: 0.95em;
+                      color: #666;
+                      margin: 5px 0;
+                  }
+                  .highlight {
+                      color: #764ba2;
+                      font-weight: bold;
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <div class="emoji">🚀</div>
+                  <h1>Welcome!</h1>
+                  <p>Your EC2 instance is up and running successfully!</p>
+                  <p>This web server was automatically configured using CloudFormation.</p>
+                  <div class="info">
+                      <p><span class="highlight">Instance Type:</span> EC2</p>
+                      <p><span class="highlight">Web Server:</span> Apache HTTP Server</p>
+                      <p><span class="highlight">Deployed:</span> $(date)</p>
+                      <p><span class="highlight">Region:</span> ${AWS::Region}</p>
+                  </div>
+              </div>
+          </body>
+          </html>
+          EOF
+          
+          # Start Apache and enable it to start on boot
+          systemctl start httpd
+          systemctl enable httpd
+          
+          # Set proper permissions
+          chmod 644 /var/www/html/index.html
+      Tags:
+        - Key: Name
+          Value: WebServerInstance
+
+Outputs:
+  PublicIP:
+    Description: Public IP address of the EC2 instance
+    Value: !GetAtt WebServerInstance.PublicIp
+    Export:
+      Name: !Sub '${AWS::StackName}-PublicIP'
+  
+  WebsiteURL:
+    Description: URL to access the web server
+    Value: !Sub 'http://${WebServerInstance.PublicIp}'
+    Export:
+      Name: !Sub '${AWS::StackName}-WebsiteURL'
+  
+  InstanceId:
+    Description: Instance ID of the EC2 instance
+    Value: !Ref WebServerInstance
+    Export:
+      Name: !Sub '${AWS::StackName}-InstanceId'
+  
+  SSHCommand:
+    Description: SSH command to connect to the instance
+    Value: !Sub 'ssh -i key-23-10-2025.pem ec2-user@${WebServerInstance.PublicIp}'
